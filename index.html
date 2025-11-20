@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Al-Qur'an Digital</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Amiri Quran untuk Arab, Poppins untuk Latin/Indonesia -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Styles for Fonts -->
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .font-arabic {
+            font-family: 'Amiri Quran', serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-3xl font-bold text-center">Aplikasi Al-Qur'an Digital</h1>
+            <p class="text-center mt-2 text-green-100">Baca dan pelajari Al-Qur'an dengan mudah</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Daftar Surah (Sidebar) -->
+            <aside class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-md p-4 h-[75vh] lg:h-[80vh] overflow-y-auto sticky top-4">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Daftar Surah</h2>
+                    <ul id="surah-list" class="space-y-2">
+                        <!-- Daftar surah akan dimuat di sini oleh JavaScript -->
+                        <li class="text-gray-500 text-center p-4">Memuat daftar surah...</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Konten Ayat -->
+            <section class="lg:col-span-3">
+                <div id="verse-content" class="bg-white rounded-lg shadow-md p-6 md:p-8">
+                    <div class="text-center text-gray-500 py-20">
+                        <svg class="w-24 h-24 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                        <p class="text-lg">Silakan pilih surah dari daftar di sebelah kiri untuk menampilkan ayat-ayatnya.</p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white text-center py-4 mt-8">
+        <p>&copy; <span id="year"></span> - Dikembangkan oleh <span class="font-semibold">Syandiansah RH</span></p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const surahListEl = document.getElementById('surah-list');
+            const verseContentEl = document.getElementById('verse-content');
+            const yearEl = document.getElementById('year');
+
+            // Set tahun dinamis di footer
+            yearEl.textContent = new Date().getFullYear();
+
+            // URL API
+            const API_BASE_URL = 'https://api.alquran.cloud/v1';
+
+            // Fungsi untuk mengambil dan menampilkan daftar surah
+            async function loadSurahList() {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/surah`);
+                    const data = await response.json();
+                    
+                    surahListEl.innerHTML = ''; // Kosongkan loading text
+
+                    data.data.forEach(surah => {
+                        const li = document.createElement('li');
+                        li.className = 'p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-green-50 hover:text-green-700 border border-transparent hover:border-green-200';
+                        li.dataset.surahId = surah.number;
+                        li.innerHTML = `
+                            <span class="font-semibold">${surah.number}.</span> ${surah.englishName}
+                            <span class="block text-sm text-gray-500">${surah.name} (${surah.revelationType})</span>
+                        `;
+                        li.addEventListener('click', () => loadVerses(surah.number, li));
+                        surahListEl.appendChild(li);
+                    });
+                } catch (error) {
+                    surahListEl.innerHTML = `<li class="text-red-500 text-center p-4">Gagal memuat daftar surah.</li>`;
+                    console.error("Error fetching surah list:", error);
+                }
+            }
+
+            // Fungsi untuk mengambil dan menampilkan ayat
+            async function loadVerses(surahId, activeListItem) {
+                // Tandai surah yang aktif
+                document.querySelectorAll('#surah-list li').forEach(item => {
+                    item.classList.remove('bg-green-100', 'text-green-800', 'border-green-400');
+                });
+                activeListItem.classList.add('bg-green-100', 'text-green-800', 'border-green-400');
+
+                // Tampilkan indikator loading
+                verseContentEl.innerHTML = `
+                    <div class="text-center py-10">
+                        <svg class="animate-spin h-8 w-8 text-green-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="mt-4 text-gray-600">Memuat ayat-ayat...</p>
+                    </div>
+                `;
+
+                try {
+                    // Mengambil edisi Arab, Terjemahan Indonesia, dan Transliterasi
+                    const response = await fetch(`${API_BASE_URL}/surah/${surahId}/editions/quran-uthmani,id.indonesian,id.transliteration`);
+                    const data = await response.json();
+                    
+                    const surahInfo = data.data[0]; // Info surah (nama, dll)
+                    const versesArabic = data.data[0].ayahs;
+                    const versesTranslation = data.data[1].ayahs;
+                    const versesTransliteration = data.data[2].ayahs;
+
+                    let html = `
+                        <div class="text-center mb-8 border-b pb-4">
+                            <h2 class="text-3xl font-bold font-arabic text-4xl">${surahInfo.name}</h2>
+                            <p class="text-lg text-gray-600 mt-2">${surahInfo.englishName} - ${surahInfo.englishNameTranslation}</p>
+                            <p class="text-sm text-gray-500">${surahInfo.revelationType} - ${versesArabic.length} Ayat</p>
+                        </div>
+                    `;
+
+                    versesArabic.forEach((verse, index) => {
+                        html += `
+                            <div class="verse-item mb-8 pb-6 border-b border-gray-200 last:border-b-0">
+                                <div class="flex justify-end items-center mb-3">
+                                    <span class="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full ms-2">
+                                        ${verse.numberInSurah}
+                                    </span>
+                                </div>
+                                <p class="font-arabic text-right text-3xl leading-loose mb-4 text-gray-800">${verse.text}</p>
+                                <p class="latin-text text-gray-500 italic text-sm mb-2">${versesTransliteration[index].text}</p>
+                                <p class="translation-text text-gray-700 leading-relaxed">${versesTranslation[index].text}</p>
+                            </div>
+                        `;
+                    });
+
+                    verseContentEl.innerHTML = html;
+                    
+                    // Scroll ke konten ayat setelah dimuat
+                    verseContentEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                } catch (error) {
+                    verseContentEl.innerHTML = `<div class="text-center text-red-500 py-10">Gagal memuat ayat. Silakan coba lagi.</div>`;
+                    console.error("Error fetching verses:", error);
+                }
+            }
+
+            // Inisialisasi: muat daftar surah saat halaman dibuka
+            loadSurahList();
+        });
+    </script>
+</body>
+</html>
